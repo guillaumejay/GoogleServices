@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.Serialization.Formatters;
 using Google.Apis.Analytics.v3;
 using Google.Apis.Analytics.v3.Data;
 using Google.Apis.Services;
@@ -65,8 +67,13 @@ namespace GoogleServices
             request.Dimensions = requestParameters.Dimensions;
             request.QuotaUser = requestParameters.QuotaUser;
             request.MaxResults = requestParameters.MaxResults;
-            request.Segment = requestParameters.Segment;
-            request.Filters = requestParameters.Filters;
+            request.Segment = requestParameters.Segment.Trim();
+            if (request.Segment == "")
+                request.Segment = null;
+            request.Filters = requestParameters.Filters.Trim();
+            if (request.Filters == "")
+                request.Filters = null;
+
             int currentPosition = 1;
             List<IList<string>> results = new List<IList<string>>();
             int numberOfResults = 0;
@@ -75,11 +82,15 @@ namespace GoogleServices
                 GaData d = request.Execute();  // Make the request
                 if (d.Rows == null)
                     break;
+                if (currentPosition == 1)
+                {
+                    results.Add(d.ColumnHeaders.Select(x => x.Name).ToList());
+                }
                 results.AddRange(d.Rows);
                 numberOfResults = (!d.TotalResults.HasValue) ? 0 : d.TotalResults.Value;
                 currentPosition += d.Rows.Count;
                 request.StartIndex = currentPosition;
-            } while (request.StartIndex<=numberOfResults);
+            } while (request.StartIndex <= numberOfResults);
 
             return results;
         }
